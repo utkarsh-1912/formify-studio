@@ -87,13 +87,13 @@ export default function LandingPage() {
           </nav>
         </div>
         <div className="flex items-center space-x-6">
+          <span className="text-xs font-mono font-semibold text-slate-600 dark:text-slate-500 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded">v{APP_VERSION}</span>
           <button
             onClick={handleCreateWorkspace}
             className="py-2.5 px-5 bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-500 hover:to-indigo-550 text-white text-xs font-bold rounded-xl cursor-pointer transition-all shadow-md shadow-blue-900/10 dark:shadow-blue-900/20 focus:outline-none"
           >
             Launch Studio
           </button>
-          <span className="text-xs font-mono font-semibold text-slate-600 dark:text-slate-500 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded">v{APP_VERSION}</span>
         </div>
       </header>
 
