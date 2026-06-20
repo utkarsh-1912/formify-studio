@@ -1,0 +1,29 @@
+# Tasks - Enterprise Pages & Lucide Icon Replacements
+
+- [x] Dependency Setup
+  - [x] Install `lucide-react` using `npm install`
+- [x] Enterprise Brand Routing
+  - [x] Create `/about` page (`src/app/about/page.tsx`)
+  - [x] Create `/privacy` page (`src/app/privacy/page.tsx`)
+  - [x] Create `/contact` page (`src/app/contact/page.tsx`) with direct contact details (no form)
+  - [x] Redesign `/` landing page (`src/app/page.tsx`) to enterprise level spanning full-width edge-to-edge
+  - [x] Implement runtime error and 404 routes (`error.tsx`, `not-found.tsx` in `src/app`)
+- [x] Lucide Icons Conversion
+  - [x] Replace heroicons in `App.tsx`
+  - [x] Replace heroicons in `src/app/page.tsx`
+  - [x] Replace heroicons in `components/JsonEditor.tsx`
+  - [x] Replace heroicons in `components/VisualBuilder.tsx`
+  - [x] Replace heroicons in `components/SubmissionsDashboard.tsx`
+  - [x] Replace heroicons in `components/CodeExporter.tsx`
+  - [x] Replace heroicons in `components/TemplatesGallery.tsx`
+  - [x] Replace heroicons in `components/ThemeCustomizer.tsx`
+  - [x] Replace inline SVGs in `components/FormGenerator.tsx`
+- [x] Settings & Scaling Redesign
+  - [x] Refactor workspace settings modal inside `App.tsx` with dynamic category tabs (Appearance vs. Typography)
+  - [x] Implement a live typography scale preview box resizing in real-time
+  - [x] Integrate dual slider + stepper controls for font scaling ratio
+  - [x] Implement alphanumeric validation and Draft/Saved indicators to track unsaved workspaces
+- [x] ChunkLoadError & Build checks
+  - [x] Add self-healing PeerJS CDN dynamic script fallback in `p2pSync.ts`
+  - [x] Fix Next.js workspace root tracing configuration conflicts
+  - [x] Run production build `npm run build` successfully

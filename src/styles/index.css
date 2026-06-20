@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Additional custom styles */
+textarea {
+  resize: none;
+}
+
+.scrollable-container {
+  max-height: 400px;
+  overflow-y: auto;
+}
+body {
+  @apply bg-gray-50 dark:bg-gray-800 dark:text-white;
+}
