@@ -235,6 +235,33 @@ export default function AnalyticsDashboardPage({ params }: AnalyticsPageProps) {
     URL.revokeObjectURL(url);
   };
 
+  // Submissions Timeline Activity
+  const getTimelineData = () => {
+    const dates: Record<string, number> = {};
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      dates[dateStr] = 0;
+    }
+
+    submissions.forEach((sub) => {
+      try {
+        const dateStr = new Date(sub.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        if (dates[dateStr] !== undefined) {
+          dates[dateStr]++;
+        }
+      } catch (e) {
+        // ignore
+      }
+    });
+
+    return Object.entries(dates).map(([date, count]) => ({ date, count }));
+  };
+
+  const timelineData = getTimelineData();
+  const maxTimelineCount = Math.max(...timelineData.map((d) => d.count), 1);
+
   return (
     <div className={`min-h-screen flex flex-col font-sans transition-all duration-300 ${themeTokens.bg} ${fontFamClass}`}>
       {/* Top Status Banner */}
@@ -264,17 +291,13 @@ export default function AnalyticsDashboardPage({ params }: AnalyticsPageProps) {
 
       {/* Top Navigation Bar */}
       <header className={`flex-shrink-0 border-b px-4 py-3 sm:px-6 flex items-center justify-between shadow-sm z-10 ${themeTokens.header}`}>
-        <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
-          <button
-            onClick={() => router.push(`/ws/${workspaceId}`)}
-            className={`p-1.5 rounded-lg border ${themeTokens.border} hover:bg-black/5 cursor-pointer focus:outline-none flex-shrink-0`}
-            title="Return to Studio Editor"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </button>
+        <div className="flex items-center space-x-3 min-w-0">
+          <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg">
+            <BarChart3 className="h-5 w-5 animate-pulse" />
+          </div>
           <div>
             <h1 className={`text-xs sm:text-sm font-bold truncate ${themeTokens.text}`}>
-              {schema?.formTitle || "Untitled Form"} &bull; Analytics
+              {schema?.formTitle || "Untitled Form"} &bull; Analytics Dashboard
             </h1>
             <p className={`text-[10px] ${themeTokens.textSecondary} truncate max-w-[200px] xs:max-w-sm`}>
               decentralized serverless dashboard for room: {workspaceId}
@@ -284,10 +307,10 @@ export default function AnalyticsDashboardPage({ params }: AnalyticsPageProps) {
         
         <button
           onClick={() => window.open(`/ws/${workspaceId}/share`, "_blank")}
-          className="flex items-center space-x-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100/50 border border-blue-100 dark:border-blue-900/50 rounded-xl text-[10px] sm:text-xs font-bold cursor-pointer"
+          className="flex items-center space-x-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100/50 border border-blue-100 dark:border-blue-900/50 rounded-xl text-[10px] sm:text-xs font-bold cursor-pointer transition-colors"
         >
-          <span>Live Form</span>
-          <ExternalLink className="h-3 w-3" />
+          <span>Open Live Form</span>
+          <ExternalLink className="h-3.5 w-3.5" />
         </button>
       </header>
 
@@ -332,6 +355,45 @@ export default function AnalyticsDashboardPage({ params }: AnalyticsPageProps) {
             </div>
           </div>
         </div>
+
+        {/* Timeline Activity Chart */}
+        {submissions.length > 0 && (
+          <div className={`p-5 rounded-xl border ${themeTokens.border} ${themeTokens.card} shadow-sm space-y-4`}>
+            <div>
+              <h3 className={`font-bold text-xs uppercase tracking-wider ${themeTokens.textSecondary} flex items-center space-x-1.5`}>
+                <TrendingUp className="h-4.5 w-4.5 text-emerald-500" />
+                <span>Daily Submission Frequency (Last 7 Days)</span>
+              </h3>
+              <p className={`text-[11px] ${themeTokens.textSecondary}`}>Count of incoming response logs per day</p>
+            </div>
+
+            <div className="h-40 w-full flex items-end justify-between pt-4 pb-2 px-2 border-b border-gray-200 dark:border-gray-800">
+              {timelineData.map((d) => {
+                const heightPercent = (d.count / maxTimelineCount) * 80;
+                return (
+                  <div key={d.date} className="flex-1 flex flex-col items-center group relative mx-2">
+                    <div className="absolute bottom-full mb-1 bg-slate-900 text-white text-[9px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none font-semibold shadow z-10">
+                      {d.count} responses
+                    </div>
+                    
+                    <div 
+                      style={{ height: `${Math.max(heightPercent, 4)}%` }} 
+                      className={`w-full rounded-t-md transition-all duration-300 ${
+                        d.count > 0 
+                          ? "bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-400 shadow-sm" 
+                          : "bg-gray-200 dark:bg-gray-800"
+                      }`}
+                    />
+                    
+                    <span className={`text-[9px] font-bold mt-2 truncate max-w-full ${themeTokens.textSecondary}`}>
+                      {d.date}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Charts & Distribution lists */}
         {schema && schema.fields && schema.fields.length > 0 && submissions.length > 0 && (

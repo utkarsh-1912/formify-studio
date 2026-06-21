@@ -30,7 +30,13 @@ import {
   Users,
   Send,
   LogOut,
-  AlertCircle
+  AlertCircle,
+  MoreVertical,
+  Lock,
+  Unlock,
+  ExternalLink,
+  Copy,
+  BarChart3
 } from "lucide-react";
 
 // Clean canvas schema as default for new workspaces
@@ -98,6 +104,22 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
   const [shareCopied, setShareCopied] = useState(false);
   const [justPushed, setJustPushed] = useState(false);
   const [mobileActiveTab, setMobileActiveTab] = useState<"editor" | "preview">("editor");
+
+  // Security Auth States
+  const [hasEditPermission, setHasEditPermission] = useState(true);
+  const [workspaceToken, setWorkspaceToken] = useState<string>("");
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
+  const [showSwitchBanner, setShowSwitchBanner] = useState(false);
+
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const handleCopyToClipboard = (text: string, fieldId: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedField(fieldId);
+      setTimeout(() => setCopiedField(null), 2000);
+    });
+  };
 
   // Combine workspace states into a single memoized state object for P2P Sync
   const p2pState = useMemo(() => ({
@@ -174,6 +196,49 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
 
   // Load submissions, theme, and schema on load
   useEffect(() => {
+    // 0. Workspace Security Token Check
+    const tokenKey = `formify_edit_token_${workspaceId || "default"}`;
+    const storedToken = localStorage.getItem(tokenKey);
+    const hasStoredSchema = !!localStorage.getItem(schemaStorageKey);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlToken = urlParams.get("token");
+
+    let finalToken = storedToken || "";
+    let hasEdit = false;
+
+    if (!hasStoredSchema && !storedToken) {
+      // Brand new workspace! Generate a token
+      const newToken = "tok_" + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem(tokenKey, newToken);
+      finalToken = newToken;
+      hasEdit = true;
+      // Append token to URL without reloading
+      const newUrl = `${window.location.pathname}?token=${newToken}`;
+      window.history.replaceState({}, "", newUrl);
+    } else if (storedToken) {
+      if (urlToken === storedToken) {
+        hasEdit = true;
+      } else {
+        // View-Only mode
+        hasEdit = false;
+        if (!urlToken) {
+          setShowSwitchBanner(true);
+        }
+      }
+    } else {
+      // Legacy workspace: has stored schema but no stored token
+      const newToken = "tok_" + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem(tokenKey, newToken);
+      finalToken = newToken;
+      hasEdit = true;
+      const newUrl = `${window.location.pathname}?token=${newToken}`;
+      window.history.replaceState({}, "", newUrl);
+    }
+
+    setWorkspaceToken(finalToken);
+    setHasEditPermission(hasEdit);
+
     // 1. Schema load (fallback to cleanDefaultSchema if not found)
     try {
       const storedSchema = localStorage.getItem(schemaStorageKey);
@@ -333,6 +398,15 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
     }
   };
 
+  const handleSwitchToEditMode = () => {
+    const tokenKey = `formify_edit_token_${workspaceId || "default"}`;
+    const storedToken = localStorage.getItem(tokenKey);
+    if (storedToken) {
+      const newUrl = `${window.location.pathname}?token=${storedToken}`;
+      window.location.href = newUrl;
+    }
+  };
+
   // Settings Modal controls
   const openSettings = () => {
     setStagedTheme(globalTheme);
@@ -367,6 +441,20 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
 
   return (
     <div className={`h-screen flex flex-col font-sans overflow-hidden ${themeTokens.bg}`}>
+      {showSwitchBanner && (
+        <div className="flex-shrink-0 bg-blue-600 text-white text-xs px-4 py-2 sm:px-6 sm:py-2.5 flex items-center justify-between shadow-md z-30 animate-fade-in font-semibold">
+          <span className="flex items-center space-x-1.5">
+            <Lock className="h-3.5 w-3.5 text-blue-200" />
+            <span>You own this workspace. You are currently viewing in <strong>View-Only Mode</strong>.</span>
+          </span>
+          <button
+            onClick={handleSwitchToEditMode}
+            className="bg-white text-blue-600 px-3 py-1 rounded-lg hover:bg-blue-50 transition-colors font-bold cursor-pointer text-[10px] sm:text-xs"
+          >
+            Switch to Edit Mode
+          </button>
+        </div>
+      )}
       {/* Header toolbar */}
       <header className={`flex-shrink-0 border-b px-3 py-2 sm:px-6 sm:py-3 flex items-center justify-between shadow-sm z-20 ${themeTokens.header}`}>
         <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
@@ -388,27 +476,37 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
               type="text"
               value={roomName}
               onChange={handleRoomNameChange}
-              className={`px-1.5 py-0.5 sm:px-2.5 sm:py-1 bg-transparent hover:bg-black/5 border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 rounded-lg text-xs sm:text-sm font-semibold focus:outline-none transition-all max-w-[70px] xs:max-w-[110px] sm:max-w-xs truncate ${themeTokens.inputText}`}
-              title="Click to rename workspace"
+              readOnly={!hasEditPermission}
+              className={`px-1.5 py-0.5 sm:px-2.5 sm:py-1 bg-transparent hover:bg-black/5 border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 rounded-lg text-xs sm:text-sm font-semibold focus:outline-none transition-all max-w-[70px] xs:max-w-[110px] sm:max-w-xs truncate ${themeTokens.inputText} ${!hasEditPermission ? "cursor-not-allowed opacity-75" : ""}`}
+              title={hasEditPermission ? "Click to rename workspace" : "Workspace Name (Read-Only)"}
             />
-            {isWorkspaceInitialized ? (
-              <span 
-                className="p-1.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/25 rounded-lg flex-shrink-0 flex items-center justify-center shadow-sm"
-                title="Workspace Saved in LocalStorage"
-              >
-                <Check className="h-4 w-4" />
-              </span>
+            {hasEditPermission ? (
+              isWorkspaceInitialized ? (
+                <span 
+                  className="p-1.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/25 rounded-lg flex-shrink-0 flex items-center justify-center shadow-sm"
+                  title="Workspace Saved in LocalStorage"
+                >
+                  <Check className="h-4 w-4" />
+                </span>
+              ) : (
+                <button
+                  onClick={() => {
+                    localStorage.setItem(schemaStorageKey, JSON.stringify(schema));
+                    setIsWorkspaceInitialized(true);
+                  }}
+                  className="p-1.5 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/25 rounded-lg flex-shrink-0 cursor-pointer animate-pulse focus:outline-none flex items-center justify-center shadow-sm"
+                  title="Workspace not initialized in LocalStorage. Click to save."
+                >
+                  <AlertCircle className="h-4 w-4" />
+                </button>
+              )
             ) : (
-              <button
-                onClick={() => {
-                  localStorage.setItem(schemaStorageKey, JSON.stringify(schema));
-                  setIsWorkspaceInitialized(true);
-                }}
-                className="p-1.5 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/25 rounded-lg flex-shrink-0 cursor-pointer animate-pulse focus:outline-none flex items-center justify-center shadow-sm"
-                title="Workspace not initialized in LocalStorage. Click to save."
+              <span 
+                className="p-1.5 bg-blue-500/10 text-blue-500 border border-blue-500/25 rounded-lg flex-shrink-0 flex items-center justify-center shadow-sm"
+                title="View-Only Mode Active"
               >
-                <AlertCircle className="h-4 w-4" />
-              </button>
+                <Lock className="h-4 w-4" />
+              </span>
             )}
           </div>
         </div>
@@ -473,7 +571,7 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
               </div>
             )}
             {p2pStatus === "error" && (
-              <span className="text-red-600 font-extrabold text-[10px] flex items-center space-x-1" title="P2P Offline">
+              <span className="text-red-650 font-extrabold text-[10px] flex items-center space-x-1" title="P2P Offline">
                 <AlertCircle className="h-4 w-4" />
                 <button onClick={initPeerJS} className="underline text-blue-500 focus:outline-none">Retry</button>
               </span>
@@ -489,17 +587,91 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
             <Settings className="h-4 w-4" />
           </button>
 
-          <button
-            onClick={handleShareLink}
-            className="flex items-center justify-center p-1.5 bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-900/50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 rounded-xl cursor-pointer transition-colors focus:outline-none flex-shrink-0"
-            title="Copy public form share link"
-          >
-            {shareCopied ? (
-              <Check className="h-4 w-4 text-emerald-600" />
-            ) : (
-              <Share2 className="h-4 w-4" />
+          {/* 3-Dot Options Dropdown */}
+          <div className="relative flex-shrink-0">
+            <button
+              onClick={() => setIsHeaderMenuOpen(!isHeaderMenuOpen)}
+              className={`p-1.5 rounded-xl border ${themeTokens.border} ${themeTokens.inputBg} ${themeTokens.textSecondary} hover:${themeTokens.text} cursor-pointer focus:outline-none transition-all shadow-sm flex items-center justify-center`}
+              title="More Actions"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </button>
+
+            {isHeaderMenuOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-30 cursor-default" 
+                  onClick={() => setIsHeaderMenuOpen(false)}
+                />
+                
+                <div className={`absolute right-0 mt-2 w-48 rounded-xl shadow-xl border overflow-hidden z-40 animate-scale-up ${themeTokens.modalBg} ${themeTokens.border}`}>
+                  <div className="py-1.5">
+                    <button
+                      onClick={() => {
+                        setIsShareModalOpen(true);
+                        setIsHeaderMenuOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-xs font-semibold flex items-center space-x-2 hover:bg-black/5 transition-colors cursor-pointer ${themeTokens.text}`}
+                    >
+                      <Share2 className="h-3.5 w-3.5 text-blue-500" />
+                      <span>Share & Embed</span>
+                    </button>
+
+                    <hr className={`my-1.5 border-t ${themeTokens.border}`} />
+
+                    <a
+                      href={`/ws/${workspaceId || "default"}/share`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`w-full text-left px-4 py-2 text-xs font-semibold flex items-center space-x-2 hover:bg-black/5 transition-colors cursor-pointer block ${themeTokens.text}`}
+                      onClick={() => setIsHeaderMenuOpen(false)}
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 text-emerald-500" />
+                      <span>Open Live Form</span>
+                    </a>
+
+                    <a
+                      href={`/ws/${workspaceId || "default"}/analytics`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`w-full text-left px-4 py-2 text-xs font-semibold flex items-center space-x-2 hover:bg-black/5 transition-colors cursor-pointer block ${themeTokens.text}`}
+                      onClick={() => setIsHeaderMenuOpen(false)}
+                    >
+                      <BarChart3 className="h-3.5 w-3.5 text-purple-500" />
+                      <span>Open Analytics</span>
+                    </a>
+
+                    <a
+                      href={`/ws/${workspaceId || "default"}/view`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`w-full text-left px-4 py-2 text-xs font-semibold flex items-center space-x-2 hover:bg-black/5 transition-colors cursor-pointer block ${themeTokens.text}`}
+                      onClick={() => setIsHeaderMenuOpen(false)}
+                    >
+                      <Code className="h-3.5 w-3.5 text-amber-500" />
+                      <span>Preview Embed</span>
+                    </a>
+
+                    {showSwitchBanner && (
+                      <>
+                        <hr className={`my-1.5 border-t ${themeTokens.border}`} />
+                        <button
+                          onClick={() => {
+                            handleSwitchToEditMode();
+                            setIsHeaderMenuOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-xs font-bold flex items-center space-x-2 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer ${themeTokens.text}`}
+                        >
+                          <Unlock className="h-3.5 w-3.5 text-blue-500" />
+                          <span>Unlock Editing</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
-          </button>
+          </div>
         </div>
       </header>
 
@@ -821,6 +993,198 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
                 className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white rounded-xl cursor-pointer focus:outline-none shadow-sm"
               >
                 Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share & Embed Modal Component */}
+      {isShareModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className={`rounded-2xl max-w-2xl w-full flex flex-col shadow-2xl overflow-hidden border ${themeTokens.border} ${themeTokens.modalBg} animate-scale-up`}>
+            {/* Header */}
+            <div className={`px-6 py-4 border-b ${themeTokens.border} flex justify-between items-center bg-black/5`}>
+              <div>
+                <h4 className={`text-sm font-bold flex items-center space-x-1.5 ${themeTokens.text}`}>
+                  <Share2 className="h-4.5 w-4.5 text-blue-500" />
+                  <span>Share & Embed Workspace</span>
+                </h4>
+                <p className={`text-[11px] ${themeTokens.textSecondary}`}>
+                  Access workspace links, live client forms, embed codes, and analytics.
+                </p>
+              </div>
+              <button 
+                onClick={() => setIsShareModalOpen(false)}
+                className={`text-xs hover:opacity-85 transition-all font-semibold ${themeTokens.textSecondary}`}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
+              {/* Section 1: Client Submission Link */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className={`text-[11px] font-bold uppercase tracking-wider ${themeTokens.textSecondary}`}>
+                    Public Submission Form (For Clients)
+                  </span>
+                  {copiedField === "shareForm" && (
+                    <span className="text-[10px] text-emerald-500 font-bold animate-scale-up">Copied!</span>
+                  )}
+                </div>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${window.location.origin}/ws/${workspaceId || "default"}/share`}
+                    className={`flex-1 p-2 border ${themeTokens.border} ${themeTokens.inputBg} ${themeTokens.inputText} rounded-xl text-xs focus:outline-none select-all`}
+                  />
+                  <button
+                    onClick={() => handleCopyToClipboard(`${window.location.origin}/ws/${workspaceId || "default"}/share`, "shareForm")}
+                    className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center cursor-pointer shadow-sm"
+                    title="Copy Form Link"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className={`text-[10px] ${themeTokens.textSecondary}`}>
+                  Share this link directly with customers to receive submissions.
+                </p>
+              </div>
+
+              {/* Section 2: IFrame Embed Code */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className={`text-[11px] font-bold uppercase tracking-wider ${themeTokens.textSecondary}`}>
+                    IFrame Widget HTML Embed Code
+                  </span>
+                  {copiedField === "shareIframe" && (
+                    <span className="text-[10px] text-emerald-500 font-bold animate-scale-up">Copied!</span>
+                  )}
+                </div>
+                <div className="flex space-x-2">
+                  <textarea
+                    readOnly
+                    rows={2}
+                    value={`<iframe src="${window.location.origin}/ws/${workspaceId || "default"}/view" width="100%" height="600px" style="border:none;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.05);"></iframe>`}
+                    className={`flex-1 p-2 border ${themeTokens.border} ${themeTokens.inputBg} ${themeTokens.inputText} rounded-xl text-xs font-mono resize-none focus:outline-none select-all`}
+                  />
+                  <button
+                    onClick={() => handleCopyToClipboard(`<iframe src="${window.location.origin}/ws/${workspaceId || "default"}/view" width="100%" height="600px" style="border:none;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.05);"></iframe>`, "shareIframe")}
+                    className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center cursor-pointer shadow-sm"
+                    title="Copy Embed Code"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className={`text-[10px] ${themeTokens.textSecondary}`}>
+                  Embed this responsive form widget directly in your website or blog pages.
+                </p>
+              </div>
+
+              {/* Section 3: Analytics Link */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className={`text-[11px] font-bold uppercase tracking-wider ${themeTokens.textSecondary}`}>
+                    Public Analytics Dashboard Link
+                  </span>
+                  {copiedField === "shareAnalytics" && (
+                    <span className="text-[10px] text-emerald-500 font-bold animate-scale-up">Copied!</span>
+                  )}
+                </div>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${window.location.origin}/ws/${workspaceId || "default"}/analytics`}
+                    className={`flex-1 p-2 border ${themeTokens.border} ${themeTokens.inputBg} ${themeTokens.inputText} rounded-xl text-xs focus:outline-none select-all`}
+                  />
+                  <button
+                    onClick={() => handleCopyToClipboard(`${window.location.origin}/ws/${workspaceId || "default"}/analytics`, "shareAnalytics")}
+                    className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center cursor-pointer shadow-sm"
+                    title="Copy Analytics Link"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className={`text-[10px] ${themeTokens.textSecondary}`}>
+                  Share this read-only link to let others view submission metrics and charts.
+                </p>
+              </div>
+
+              {/* Section 4: Collaborative Edit Link (Owner only check) */}
+              {hasEditPermission && (
+                <div className={`p-4 rounded-xl border border-amber-500/25 bg-amber-500/5 space-y-2`}>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center space-x-1">
+                      <Lock className="h-3.5 w-3.5" />
+                      <span>Collaborative Edit Link (With Security Token)</span>
+                    </span>
+                    {copiedField === "shareEdit" && (
+                      <span className="text-[10px] text-emerald-500 font-bold animate-scale-up">Copied!</span>
+                    )}
+                  </div>
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={`${window.location.origin}/ws/${workspaceId || "default"}?token=${workspaceToken}`}
+                      className={`flex-1 p-2 border border-amber-350 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl text-xs focus:outline-none select-all`}
+                    />
+                    <button
+                      onClick={() => handleCopyToClipboard(`${window.location.origin}/ws/${workspaceId || "default"}?token=${workspaceToken}`, "shareEdit")}
+                      className="p-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl flex items-center justify-center cursor-pointer shadow-sm"
+                      title="Copy Edit Link"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-relaxed font-semibold">
+                    ⚠️ WARNING: Share this only with trusted co-designers. Anyone with this link can modify form schema parameters and delete submissions.
+                  </p>
+                </div>
+              )}
+
+              {/* Section 5: View-Only Editor Link */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className={`text-[11px] font-bold uppercase tracking-wider ${themeTokens.textSecondary}`}>
+                    View-Only Studio Link (Without Token)
+                  </span>
+                  {copiedField === "shareViewOnly" && (
+                    <span className="text-[10px] text-emerald-500 font-bold animate-scale-up">Copied!</span>
+                  )}
+                </div>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${window.location.origin}/ws/${workspaceId || "default"}`}
+                    className={`flex-1 p-2 border ${themeTokens.border} ${themeTokens.inputBg} ${themeTokens.inputText} rounded-xl text-xs focus:outline-none select-all`}
+                  />
+                  <button
+                    onClick={() => handleCopyToClipboard(`${window.location.origin}/ws/${workspaceId || "default"}`, "shareViewOnly")}
+                    className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center cursor-pointer shadow-sm"
+                    title="Copy View-Only Link"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className={`text-[10px] ${themeTokens.textSecondary}`}>
+                  Let clients view the builder design space in view-only layout mode without editing permissions.
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className={`px-6 py-4 border-t ${themeTokens.border} flex justify-end bg-black/5`}>
+              <button
+                onClick={() => setIsShareModalOpen(false)}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white rounded-xl cursor-pointer focus:outline-none shadow-sm"
+              >
+                Done
               </button>
             </div>
           </div>

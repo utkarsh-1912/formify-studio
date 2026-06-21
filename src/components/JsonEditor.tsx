@@ -14,9 +14,10 @@ interface JsonEditorProps {
   themeTokens: AppThemeTokens;
   onChange: (value: string) => void;
   error: string | null;
+  readOnly?: boolean;
 }
 
-const JsonEditor: React.FC<JsonEditorProps> = ({ value, themeTokens, onChange, error }) => {
+const JsonEditor: React.FC<JsonEditorProps> = ({ value, themeTokens, onChange, error, readOnly = false }) => {
   const [localValue, setLocalValue] = useState(value);
   const [copied, setCopied] = useState(false);
 
@@ -27,10 +28,16 @@ const JsonEditor: React.FC<JsonEditorProps> = ({ value, themeTokens, onChange, e
   const handleJsonChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     setLocalValue(newValue);
-    onChange(newValue);
+  };
+
+  const handleBlur = () => {
+    if (!readOnly && localValue !== value) {
+      onChange(localValue);
+    }
   };
 
   const handlePrettify = () => {
+    if (readOnly) return;
     try {
       const parsed = JSON.parse(localValue);
       const formatted = JSON.stringify(parsed, null, 2);
@@ -42,6 +49,7 @@ const JsonEditor: React.FC<JsonEditorProps> = ({ value, themeTokens, onChange, e
   };
 
   const handleMinify = () => {
+    if (readOnly) return;
     try {
       const parsed = JSON.parse(localValue);
       const minified = JSON.stringify(parsed);
@@ -53,6 +61,7 @@ const JsonEditor: React.FC<JsonEditorProps> = ({ value, themeTokens, onChange, e
   };
 
   const handleClear = () => {
+    if (readOnly) return;
     const emptySchema = JSON.stringify({ formTitle: "New Form", fields: [] }, null, 2);
     setLocalValue(emptySchema);
     onChange(emptySchema);
@@ -90,9 +99,11 @@ const JsonEditor: React.FC<JsonEditorProps> = ({ value, themeTokens, onChange, e
     <div className={`p-6 h-full flex flex-col space-y-4 ${themeTokens.sidebar}`}>
       <div className="flex justify-between items-start">
         <div>
-          <h3 className={`text-lg font-bold ${themeTokens.text}`}>JSON Schema Editor</h3>
+          <h3 className={`text-lg font-bold ${themeTokens.text}`}>
+            JSON Schema Editor {readOnly && <span className="text-xs px-2 py-0.5 ml-2 border border-amber-500/25 bg-amber-500/10 text-amber-500 rounded-md font-mono">View Only</span>}
+          </h3>
           <p className={`text-xs mt-0.5 ${themeTokens.textSecondary}`}>
-            Directly modify the JSON configuration. Syntax and structure are validated in real-time.
+            {readOnly ? "View the JSON configuration structure." : "Directly modify the JSON configuration. Syntax and structure are validated in real-time."}
           </p>
         </div>
 
@@ -114,28 +125,32 @@ const JsonEditor: React.FC<JsonEditorProps> = ({ value, themeTokens, onChange, e
             <Download className="h-4.5 w-4.5" />
           </button>
 
-          <button
-            onClick={handleClear}
-            className={`p-2 ${themeTokens.inputBg} border border-red-200 hover:bg-red-50 text-red-500 rounded-xl shadow-sm focus:outline-none transition-all cursor-pointer`}
-            title="Clear and Reset Form"
-          >
-            <Trash2 className="h-4.5 w-4.5" />
-          </button>
+          {!readOnly && (
+            <button
+              onClick={handleClear}
+              className={`p-2 ${themeTokens.inputBg} border border-red-200 hover:bg-red-50 text-red-500 rounded-xl shadow-sm focus:outline-none transition-all cursor-pointer`}
+              title="Clear and Reset Form"
+            >
+              <Trash2 className="h-4.5 w-4.5" />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Editor Utilities Row */}
-      <div className="flex flex-wrap gap-2">
-        <button onClick={handlePrettify} className={actionBtnClass}>
-          <Sparkles className="h-3.5 w-3.5 text-blue-500" />
-          <span>Prettify / Format</span>
-        </button>
+      {!readOnly && (
+        <div className="flex flex-wrap gap-2">
+          <button onClick={handlePrettify} className={actionBtnClass}>
+            <Sparkles className="h-3.5 w-3.5 text-blue-500" />
+            <span>Prettify / Format</span>
+          </button>
 
-        <button onClick={handleMinify} className={actionBtnClass}>
-          <Code className="h-3.5 w-3.5 text-purple-500" />
-          <span>Minify</span>
-        </button>
-      </div>
+          <button onClick={handleMinify} className={actionBtnClass}>
+            <Code className="h-3.5 w-3.5 text-purple-500" />
+            <span>Minify</span>
+          </button>
+        </div>
+      )}
 
       {/* Editor Textarea */}
       <div className={`flex-1 flex flex-col rounded-2xl border ${themeTokens.border} overflow-hidden shadow-sm ${themeTokens.inputBg} min-h-[400px]`}>
@@ -152,8 +167,10 @@ const JsonEditor: React.FC<JsonEditorProps> = ({ value, themeTokens, onChange, e
         <textarea
           value={localValue}
           onChange={handleJsonChange}
-          className={`flex-1 p-4 font-mono text-xs ${themeTokens.inputBg} ${themeTokens.inputText} focus:outline-none resize-none overflow-y-auto leading-relaxed`}
-          placeholder="Type or paste your Form Schema JSON here..."
+          onBlur={handleBlur}
+          readOnly={readOnly}
+          className={`flex-1 p-4 font-mono text-xs ${themeTokens.inputBg} ${themeTokens.inputText} focus:outline-none resize-none overflow-y-auto leading-relaxed ${readOnly ? "opacity-75 cursor-not-allowed" : ""}`}
+          placeholder={readOnly ? "No schema loaded." : "Type or paste your Form Schema JSON here..."}
           spellCheck={false}
         />
       </div>

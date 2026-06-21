@@ -125,48 +125,46 @@ export default function FormSharePage({ params }: SharePageProps) {
     <div className={`min-h-screen flex flex-col font-sans transition-all duration-300 ${themeTokens.bg} ${fontFamClass}`}>
       {/* Top Status Banner */}
       <div className="flex-shrink-0 z-20">
-        {p2pStatus === "connecting" && (
-          <div className="bg-yellow-500/10 border-b border-yellow-500/25 px-4 py-2 text-center text-xs font-semibold text-yellow-600 dark:text-yellow-400 flex items-center justify-center space-x-2 animate-pulse">
-            <div className="h-3.5 w-3.5 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
-            <span>Connecting to form workspace live host...</span>
-          </div>
-        )}
         {p2pStatus === "disconnected" && (
-          <div className="bg-red-500/10 border-b border-red-500/25 px-4 py-2.5 text-center text-xs font-semibold text-red-600 dark:text-red-400 flex items-center justify-center space-x-2">
+          <div className="bg-red-500/10 border-b border-red-500/25 px-4 py-2.5 text-center text-xs font-semibold text-red-650 dark:text-red-400 flex items-center justify-center space-x-2">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
             <span>
-              Workspace offline. Submissions cannot be saved. The form owner must open Formify Studio and Go Live.
+              Workspace offline. Submissions cannot be synced. The form owner must open Formify Studio to receive entries.
             </span>
-          </div>
-        )}
-        {p2pStatus === "joined" && (
-          <div className="bg-emerald-500/10 border-b border-emerald-500/25 px-4 py-1.5 text-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-center space-x-1.5">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-            </span>
-            <span>Live connection active. Submissions will sync instantly.</span>
           </div>
         )}
       </div>
 
       {/* Main layout body */}
       <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 relative">
-        {/* Workspace Return Header (Optional design element) */}
-        <div className="w-full max-w-2xl flex items-center justify-between mb-4 flex-shrink-0">
-          <button
-            onClick={() => router.push(`/ws/${workspaceId}`)}
-            className={`flex items-center space-x-1 text-xs font-bold ${themeTokens.textSecondary} hover:${themeTokens.text} transition-colors focus:outline-none`}
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Back to Studio</span>
-          </button>
-          
-          <div className={`flex items-center space-x-1.5 text-[10px] font-bold ${themeTokens.textSecondary}`}>
-            <span className={`px-1.5 py-0.5 rounded border ${themeTokens.border} ${themeTokens.inputBg}`}>
-              Guest View
+        {/* Workspace Brand Header */}
+        <div className="w-full max-w-2xl flex items-center justify-between mb-6 flex-shrink-0">
+          <div className="flex items-center space-x-2.5">
+            <img src="/logo.png" alt="Formify Logo" className="h-6 sm:h-7 opacity-85" />
+            <span className={`text-[10px] font-bold tracking-wide uppercase px-1.5 py-0.5 rounded border ${themeTokens.border} ${themeTokens.inputBg} ${themeTokens.textSecondary}`}>
+              Form Portal
             </span>
           </div>
+          
+          {p2pStatus === "joined" ? (
+            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 border border-emerald-500/20 rounded-full flex items-center space-x-1.5 shadow-sm">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+              </span>
+              <span>Live Synced</span>
+            </span>
+          ) : p2pStatus === "connecting" ? (
+            <span className="text-[10px] font-bold text-yellow-600 dark:text-yellow-400 bg-yellow-500/10 px-2.5 py-1 border border-yellow-500/20 rounded-full flex items-center space-x-1.5 shadow-sm animate-pulse">
+              <div className="h-2 w-2 border border-yellow-500 border-t-transparent rounded-full animate-spin" />
+              <span>Connecting...</span>
+            </span>
+          ) : (
+            <span className="text-[10px] font-bold text-red-650 dark:text-red-400 bg-red-500/10 px-2.5 py-1 border border-red-500/20 rounded-full flex items-center space-x-1.5 shadow-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+              <span>Offline</span>
+            </span>
+          )}
         </div>
 
         {/* Content Box */}

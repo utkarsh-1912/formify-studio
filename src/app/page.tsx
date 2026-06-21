@@ -284,7 +284,7 @@ export default function LandingPage() {
                   <span className="h-3 w-3 rounded-full bg-red-400" />
                   <span className="h-3 w-3 rounded-full bg-yellow-400" />
                   <span className="h-3 w-3 rounded-full bg-green-400" />
-                  <span className="text-xs font-mono font-semibold ml-2 text-slate-500 dark:text-slate-400">interactive_sandbox.js</span>
+                  <span className="hidden md:inline text-xs font-mono font-semibold ml-2 text-slate-500 dark:text-slate-400">interactive_sandbox.js</span>
                 </div>
                 <div className="flex bg-slate-200/60 dark:bg-slate-900 rounded-lg p-0.5">
                   <button

@@ -232,9 +232,10 @@ export const templates = [
 interface TemplatesGalleryProps {
   themeTokens: AppThemeTokens;
   onSelectTemplate: (schema: any) => void;
+  readOnly?: boolean;
 }
 
-const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ themeTokens, onSelectTemplate }) => {
+const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ themeTokens, onSelectTemplate, readOnly = false }) => {
   const [importMethod, setImportMethod] = useState<"file" | "text" | "url">("file");
   const [jsonText, setJsonText] = useState("");
   const [urlInput, setUrlInput] = useState("");
@@ -243,6 +244,7 @@ const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ themeTokens, onSele
   const [isImporting, setIsImporting] = useState(false);
 
   const triggerImport = (parsedSchema: any) => {
+    if (readOnly) return;
     try {
       validateSchema(parsedSchema);
       onSelectTemplate(parsedSchema);
@@ -258,6 +260,7 @@ const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ themeTokens, onSele
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (readOnly) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -276,7 +279,7 @@ const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ themeTokens, onSele
   };
 
   const handleUrlFetch = async () => {
-    if (!urlInput.trim()) return;
+    if (readOnly || !urlInput.trim()) return;
     setIsImporting(true);
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -295,14 +298,19 @@ const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ themeTokens, onSele
   return (
     <div className={`p-6 h-full overflow-y-auto space-y-4 ${themeTokens.sidebar}`}>
       <div>
-        <h3 className={`text-lg font-bold ${themeTokens.text}`}>Templates & Imports</h3>
+        <h3 className={`text-lg font-bold ${themeTokens.text} flex items-center`}>
+          Templates & Imports
+          {readOnly && <span className="text-xs px-2 py-0.5 ml-2 border border-amber-500/25 bg-amber-500/10 text-amber-500 rounded-md font-mono">View Only</span>}
+        </h3>
         <p className={`text-xs mt-0.5 ${themeTokens.textSecondary}`}>
-          Load a pre-made template or import your own JSON schema file below. Warning: importing replaces your current schema.
+          {readOnly ? "Browse available pre-made templates." : "Load a pre-made template or import your own JSON schema file below. Warning: importing replaces your current schema."}
         </p>
       </div>
 
       {/* Import Custom Schema Box */}
-      <div className={`p-5 rounded-xl border ${themeTokens.border} ${themeTokens.card} space-y-4 shadow-sm`}>
+      {!readOnly && (
+        <div className={`p-5 rounded-xl border ${themeTokens.border} ${themeTokens.card} space-y-4 shadow-sm`}>
+
         <div className="flex items-center space-x-2">
           <FileJson className="h-5 w-5 text-blue-500" />
           <h4 className={`font-bold text-sm ${themeTokens.text}`}>Import Custom Form Schema</h4>
@@ -416,6 +424,7 @@ const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ themeTokens, onSele
           </div>
         )}
       </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 mt-2">
         {templates.map((template) => {
@@ -423,22 +432,31 @@ const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ themeTokens, onSele
           return (
             <button
               key={template.name}
-              onClick={() => onSelectTemplate(template.schema)}
-              className={`flex items-start text-left p-4 ${themeTokens.inputBg} border ${themeTokens.border} hover:border-blue-500 rounded-xl transition-all duration-200 group shadow-sm hover:shadow-md cursor-pointer focus:outline-none`}
+              onClick={() => !readOnly && onSelectTemplate(template.schema)}
+              disabled={readOnly}
+              className={`flex items-start text-left p-4 ${themeTokens.inputBg} border ${themeTokens.border} ${
+                readOnly ? "opacity-70 cursor-not-allowed" : "hover:border-blue-500 hover:shadow-md cursor-pointer"
+              } rounded-xl transition-all duration-200 group shadow-sm focus:outline-none`}
             >
-              <div className="p-2.5 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors duration-200 mr-4">
+              <div className={`p-2.5 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-lg ${
+                readOnly ? "" : "group-hover:bg-blue-600 group-hover:text-white"
+              } transition-colors duration-200 mr-4`}>
                 <Icon className="h-6 w-6" />
               </div>
               <div className="flex-1">
-                <h4 className={`font-semibold transition-colors duration-200 ${themeTokens.text} group-hover:text-blue-500`}>
+                <h4 className={`font-semibold transition-colors duration-200 ${themeTokens.text} ${
+                  readOnly ? "" : "group-hover:text-blue-500"
+                }`}>
                   {template.name}
                 </h4>
                 <p className={`text-xs mt-1 leading-relaxed ${themeTokens.textSecondary}`}>
                   {template.description}
                 </p>
-                <div className="mt-2.5 inline-flex items-center text-xs font-semibold text-blue-500 group-hover:underline">
-                  Load Template &rarr;
-                </div>
+                {!readOnly && (
+                  <div className="mt-2.5 inline-flex items-center text-xs font-semibold text-blue-500 group-hover:underline">
+                    Load Template &rarr;
+                  </div>
+                )}
               </div>
             </button>
           );

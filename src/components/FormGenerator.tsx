@@ -106,7 +106,7 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({
     ? "grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 space-y-0"
     : "space-y-5";
 
-  const cardClasses = `${themeClasses.card.split(" bg-white")[0].split(" border-gray-100")[0]} ${themeTokens.card}`;
+  const cardClasses = `${themeClasses.card.replace("bg-white", "").replace("border-gray-100", "")} ${themeTokens.card}`;
 
   // Custom typography styles based on scale
   const titleStyle = {

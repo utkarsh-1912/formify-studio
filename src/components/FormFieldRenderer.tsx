@@ -27,7 +27,7 @@ const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
     fontFamily === "mono" ? "font-mono" : fontFamily === "serif" ? "font-serif" : "font-sans";
 
   // Resolve input theme style classes: combine visual styling (corners, focus rings) and global theme mode colors (input background, text)
-  const inputStyle = `${themeClasses.input.split(" bg-white")[0].split(" text-gray-900")[0]} ${themeTokens.inputBg} ${themeTokens.inputText} border ${themeTokens.border} ${fontFamClass}`;
+  const inputStyle = `${themeClasses.input.replace("bg-white", "").replace("text-gray-900", "")} ${themeTokens.inputBg} ${themeTokens.inputText} border ${themeTokens.border} ${fontFamClass}`;
 
   // Inline font sizes scaled
   const labelStyle = {
