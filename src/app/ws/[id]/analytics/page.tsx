@@ -19,7 +19,12 @@ import {
   ChevronRight,
   Eye,
   Trash2,
-  AlertCircle
+  AlertCircle,
+  X,
+  FileText,
+  Check,
+  Copy,
+  Code
 } from "lucide-react";
 
 interface AnalyticsPageProps {
@@ -62,6 +67,15 @@ export default function AnalyticsDashboardPage({ params }: AnalyticsPageProps) {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [activeModalEntry, setActiveModalEntry] = useState<SubmissionEntry | null>(null);
+  const [modalTab, setModalTab] = useState<"structured" | "json">("structured");
+  const [isCopied, setIsCopied] = useState(false);
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    });
+  };
 
   // Load from local cache on mount
   useEffect(() => {
@@ -532,38 +546,127 @@ export default function AnalyticsDashboardPage({ params }: AnalyticsPageProps) {
 
       {/* Raw Entry Dialog Modal */}
       {activeModalEntry && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className={`max-w-lg w-full p-6 rounded-2xl border ${themeTokens.border} ${themeTokens.card} shadow-2xl relative animate-scale-up`}>
-            <div className="flex justify-between items-start border-b pb-3 mb-4">
-              <div>
-                <h4 className={`font-bold text-sm ${themeTokens.text}`}>Response Entry details</h4>
-                <p className={`text-[10px] ${themeTokens.textSecondary}`}>ID: {activeModalEntry.id}</p>
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className={`rounded-2xl max-w-xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border ${themeTokens.border} ${themeTokens.card} animate-scale-up`}>
+            <div className={`px-6 py-4.5 border-b ${themeTokens.border} flex justify-between items-center bg-black/5`}>
+              <div className="flex items-center space-x-2.5">
+                <div className="p-2 bg-blue-500/10 text-blue-500 rounded-xl">
+                  <FileText className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className={`font-bold text-sm leading-tight ${themeTokens.text}`}>Submission Record</h4>
+                  <span className="text-[10px] font-mono font-bold text-slate-400">ID: {activeModalEntry.id}</span>
+                </div>
               </div>
               <button
                 onClick={() => setActiveModalEntry(null)}
-                className={`p-1.5 hover:bg-black/5 rounded-lg text-xs font-bold ${themeTokens.textSecondary} hover:${themeTokens.text}`}
+                className={`p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors focus:outline-none`}
+                title="Close dialog"
               >
-                Close
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
-              <div>
-                <span className={`text-[9px] font-bold uppercase tracking-wider block ${themeTokens.textSecondary}`}>Timestamp</span>
-                <span className={`text-xs font-medium ${themeTokens.text}`}>{new Date(activeModalEntry.timestamp).toString()}</span>
-              </div>
+            {/* Modal Sub-Header Tab Switcher */}
+            <div className={`px-6 pt-3 flex border-b bg-black/[0.02] dark:bg-white/[0.01] ${themeTokens.border}`}>
+              <button
+                onClick={() => setModalTab("structured")}
+                className={`flex items-center space-x-1.5 pb-3 px-4 text-xs font-bold border-b-2 transition-all focus:outline-none ${
+                  modalTab === "structured"
+                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                }`}
+              >
+                <Layers className="h-3.5 w-3.5" />
+                <span>Structured Fields</span>
+              </button>
+              <button
+                onClick={() => setModalTab("json")}
+                className={`flex items-center space-x-1.5 pb-3 px-4 text-xs font-bold border-b-2 transition-all focus:outline-none ${
+                  modalTab === "json"
+                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                }`}
+              >
+                <Code className="h-3.5 w-3.5" />
+                <span>Raw JSON</span>
+              </button>
+            </div>
 
-              <div className="space-y-2">
-                <span className={`text-[9px] font-bold uppercase tracking-wider block ${themeTokens.textSecondary}`}>Submitted Data</span>
-                <div className={`p-3 rounded-lg border font-mono text-xs overflow-x-auto ${themeTokens.inputBg} ${themeTokens.border} ${themeTokens.inputText}`}>
-                  {Object.entries(activeModalEntry.data).map(([key, value]) => (
-                    <div key={key} className="py-1">
-                      <span className="text-blue-500 dark:text-blue-400 font-bold">{key}:</span>{" "}
-                      <span>{String(value)}</span>
-                    </div>
-                  ))}
+            <div className="p-6 overflow-y-auto flex-1 space-y-5">
+              {/* Info grid */}
+              <div className={`grid grid-cols-2 gap-4 pb-4 border-b ${themeTokens.border}`}>
+                <div className={`p-3 rounded-xl border ${themeTokens.border} ${themeTokens.inputBg} flex items-center space-x-3 shadow-sm`}>
+                  <Calendar className="h-4.5 w-4.5 text-blue-500 flex-shrink-0" />
+                  <div>
+                    <span className={`block text-[9px] font-bold uppercase tracking-wider ${themeTokens.textSecondary}`}>Date Logged</span>
+                    <span className={`text-xs font-semibold ${themeTokens.text}`}>
+                      {new Date(activeModalEntry.timestamp).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+                <div className={`p-3 rounded-xl border ${themeTokens.border} ${themeTokens.inputBg} flex items-center space-x-3 shadow-sm`}>
+                  <Clock className="h-4.5 w-4.5 text-indigo-500 flex-shrink-0" />
+                  <div>
+                    <span className={`block text-[9px] font-bold uppercase tracking-wider ${themeTokens.textSecondary}`}>Time Logged</span>
+                    <span className={`text-xs font-semibold ${themeTokens.text}`}>
+                      {new Date(activeModalEntry.timestamp).toLocaleTimeString()}
+                    </span>
+                  </div>
                 </div>
               </div>
+
+              {modalTab === "structured" ? (
+                <div className="space-y-3">
+                  {Object.entries(activeModalEntry.data).map(([k, v]) => {
+                    const isBool = typeof v === "boolean";
+                    return (
+                      <div key={k} className={`p-3.5 rounded-xl border ${themeTokens.border} ${themeTokens.inputBg} flex items-start justify-between gap-4 transition-all hover:bg-black/[0.01] dark:hover:bg-white/[0.01]`}>
+                        <div className="min-w-0">
+                          <span className="inline-block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 bg-slate-500/5 px-2 py-0.5 rounded-md border border-slate-500/10 mb-1.5">
+                            {k}
+                          </span>
+                          <span className={`block text-xs font-medium break-all ${themeTokens.text}`}>
+                            {isBool ? (v ? "Checked / Yes" : "Unchecked / No") : String(v)}
+                          </span>
+                        </div>
+                        {isBool && (
+                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full flex items-center space-x-1 ${
+                            v 
+                              ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" 
+                              : "bg-red-500/10 text-red-500 border border-red-500/20"
+                          }`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${v ? "bg-emerald-500" : "bg-red-500"}`} />
+                            <span>{v ? "True" : "False"}</span>
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="relative group">
+                  <pre className={`rounded-xl p-4 font-mono text-[11px] overflow-auto max-h-72 border ${themeTokens.border} ${themeTokens.codeBg} ${themeTokens.text} leading-relaxed`}>
+                    {JSON.stringify(activeModalEntry.data, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+
+            <div className={`px-6 py-4 border-t ${themeTokens.border} flex justify-between items-center bg-black/5`}>
+              <button
+                onClick={() => copyToClipboard(JSON.stringify(activeModalEntry.data, null, 2))}
+                className={`px-4 py-2 border ${themeTokens.border} text-xs font-bold ${themeTokens.text} ${themeTokens.inputBg} rounded-xl cursor-pointer flex items-center space-x-1.5 hover:bg-black/5 focus:outline-none transition-all shadow-sm`}
+              >
+                {isCopied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4 text-gray-500" />}
+                <span>{isCopied ? "Copied JSON!" : "Copy JSON"}</span>
+              </button>
+              <button
+                onClick={() => setActiveModalEntry(null)}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white rounded-xl cursor-pointer focus:outline-none shadow-md shadow-blue-500/10 hover:scale-[1.01] active:scale-[0.99] transition-all"
+              >
+                Close Details
+              </button>
             </div>
           </div>
         </div>

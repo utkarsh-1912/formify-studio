@@ -110,8 +110,6 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
   const [workspaceToken, setWorkspaceToken] = useState<string>("");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
-  const [showSwitchBanner, setShowSwitchBanner] = useState(false);
-
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const handleCopyToClipboard = (text: string, fieldId: string) => {
@@ -211,15 +209,13 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
       localStorage.setItem(tokenKey, urlToken);
       finalToken = urlToken;
       hasEdit = true;
-      setShowSwitchBanner(false);
     } else if (storedToken) {
-      // Owner visiting without the token query in URL
-      hasEdit = false;
-      setShowSwitchBanner(true);
+      // Owner visiting without the token query in URL: automatically grant edit permission
+      finalToken = storedToken;
+      hasEdit = true;
     } else {
       // Guest visiting a view-only URL: strictly read-only
       hasEdit = false;
-      setShowSwitchBanner(false);
       finalToken = "";
     }
 
@@ -385,24 +381,6 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
     }
   };
 
-  const handleSwitchToEditMode = () => {
-    const tokenKey = `formify_edit_token_${workspaceId || "default"}`;
-    const storedToken = localStorage.getItem(tokenKey);
-    if (storedToken) {
-      const newUrl = `${window.location.pathname}?token=${storedToken}`;
-      window.location.href = newUrl;
-    }
-  };
-
-  const handleCloneWorkspace = () => {
-    const tokenKey = `formify_edit_token_${workspaceId || "default"}`;
-    const newToken = "tok_" + Math.random().toString(36).substring(2, 15);
-    localStorage.setItem(tokenKey, newToken);
-    localStorage.setItem(schemaStorageKey, JSON.stringify(schema));
-    const newUrl = `${window.location.pathname}?token=${newToken}`;
-    window.location.href = newUrl;
-  };
-
   // Settings Modal controls
   const openSettings = () => {
     setStagedTheme(globalTheme);
@@ -437,35 +415,6 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
 
   return (
     <div className={`h-screen flex flex-col font-sans overflow-hidden ${themeTokens.bg}`}>
-      {showSwitchBanner && (
-        <div className="flex-shrink-0 bg-blue-600 text-white text-xs px-4 py-2 sm:px-6 sm:py-2.5 flex items-center justify-between shadow-md z-30 animate-fade-in font-semibold">
-          <span className="flex items-center space-x-1.5">
-            <Lock className="h-3.5 w-3.5 text-blue-200" />
-            <span>You own this workspace. You are currently viewing in <strong>View-Only Mode</strong>.</span>
-          </span>
-          <button
-            onClick={handleSwitchToEditMode}
-            className="bg-white text-blue-600 px-3 py-1 rounded-lg hover:bg-blue-50 transition-colors font-bold cursor-pointer text-[10px] sm:text-xs"
-          >
-            Switch to Edit Mode
-          </button>
-        </div>
-      )}
-      {!hasEditPermission && !showSwitchBanner && (
-        <div className="flex-shrink-0 bg-slate-800 text-white text-xs px-4 py-2 sm:px-6 sm:py-2.5 flex items-center justify-between shadow-md z-30 animate-fade-in font-semibold">
-          <span className="flex items-center space-x-1.5">
-            <Eye className="h-3.5 w-3.5 text-slate-400" />
-            <span>Viewing in <strong>View-Only Mode</strong>. You cannot edit this workspace.</span>
-          </span>
-          <button
-            onClick={handleCloneWorkspace}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg transition-colors font-bold cursor-pointer text-[10px] sm:text-xs flex items-center space-x-1"
-          >
-            <Plus className="h-3 w-3" />
-            <span>Clone to Edit</span>
-          </button>
-        </div>
-      )}
       {/* Header toolbar */}
       <header className={`flex-shrink-0 border-b px-3 py-2 sm:px-6 sm:py-3 flex items-center justify-between shadow-sm z-20 ${themeTokens.header}`}>
         <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
@@ -590,13 +539,15 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
           </div>
 
           {/* Settings gear icon */}
-          <button
-            onClick={openSettings}
-            className={`p-1.5 rounded-xl border ${themeTokens.border} ${themeTokens.inputBg} ${themeTokens.textSecondary} hover:${themeTokens.text} cursor-pointer focus:outline-none transition-all shadow-sm flex-shrink-0`}
-            title="Open Workspace Settings"
-          >
-            <Settings className="h-4 w-4" />
-          </button>
+          {hasEditPermission && (
+            <button
+              onClick={openSettings}
+              className={`p-1.5 rounded-xl border ${themeTokens.border} ${themeTokens.inputBg} ${themeTokens.textSecondary} hover:${themeTokens.text} cursor-pointer focus:outline-none transition-all shadow-sm flex-shrink-0`}
+              title="Open Workspace Settings"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+          )}
 
           {/* 3-Dot Options Dropdown */}
           <div className="relative flex-shrink-0">
@@ -617,18 +568,21 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
                 
                 <div className={`absolute right-0 mt-2 w-48 rounded-xl shadow-xl border overflow-hidden z-40 animate-scale-up ${themeTokens.modalBg} ${themeTokens.border}`}>
                   <div className="py-1.5">
-                    <button
-                      onClick={() => {
-                        setIsShareModalOpen(true);
-                        setIsHeaderMenuOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-xs font-semibold flex items-center space-x-2 hover:bg-black/5 transition-colors cursor-pointer ${themeTokens.text}`}
-                    >
-                      <Share2 className="h-3.5 w-3.5 text-blue-500" />
-                      <span>Share & Embed</span>
-                    </button>
-
-                    <hr className={`my-1.5 border-t ${themeTokens.border}`} />
+                    {hasEditPermission && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setIsShareModalOpen(true);
+                            setIsHeaderMenuOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-xs font-semibold flex items-center space-x-2 hover:bg-black/5 transition-colors cursor-pointer ${themeTokens.text}`}
+                        >
+                          <Share2 className="h-3.5 w-3.5 text-blue-500" />
+                          <span>Share & Embed</span>
+                        </button>
+                        <hr className={`my-1.5 border-t ${themeTokens.border}`} />
+                      </>
+                    )}
 
                     <a
                       href={`/ws/${workspaceId || "default"}/share`}
@@ -663,36 +617,6 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
                       <span>Preview Embed</span>
                     </a>
 
-                    {showSwitchBanner && (
-                      <>
-                        <hr className={`my-1.5 border-t ${themeTokens.border}`} />
-                        <button
-                          onClick={() => {
-                            handleSwitchToEditMode();
-                            setIsHeaderMenuOpen(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-xs font-bold flex items-center space-x-2 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer ${themeTokens.text}`}
-                        >
-                          <Unlock className="h-3.5 w-3.5 text-blue-500" />
-                          <span>Unlock Editing</span>
-                        </button>
-                      </>
-                    )}
-                    {!hasEditPermission && !showSwitchBanner && (
-                      <>
-                        <hr className={`my-1.5 border-t ${themeTokens.border}`} />
-                        <button
-                          onClick={() => {
-                            handleCloneWorkspace();
-                            setIsHeaderMenuOpen(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-xs font-bold flex items-center space-x-2 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer ${themeTokens.text}`}
-                        >
-                          <Plus className="h-3.5 w-3.5 text-blue-500" />
-                          <span>Clone to Edit</span>
-                        </button>
-                      </>
-                    )}
                   </div>
                 </div>
               </>
@@ -756,10 +680,10 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
           {/* Left panel rendering */}
           <div className="flex-1 overflow-hidden relative">
             {leftTab === "visual" && (
-              <VisualBuilder schema={schema} themeTokens={themeTokens} onSchemaChange={handleVisualChange} />
+              <VisualBuilder schema={schema} themeTokens={themeTokens} onSchemaChange={handleVisualChange} readOnly={!hasEditPermission} />
             )}
             {leftTab === "json" && (
-              <JsonEditor value={jsonSchema} themeTokens={themeTokens} onChange={handleJsonChange} error={error} />
+              <JsonEditor value={jsonSchema} themeTokens={themeTokens} onChange={handleJsonChange} error={error} readOnly={!hasEditPermission} />
             )}
             {leftTab === "theme" && (
               <ThemeCustomizer
@@ -768,10 +692,11 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
                 globalTheme={globalTheme}
                 onChange={handleThemeSettingsChange}
                 onGlobalThemeChange={handleGlobalThemeChange}
+                readOnly={!hasEditPermission}
               />
             )}
             {leftTab === "templates" && (
-              <TemplatesGallery themeTokens={themeTokens} onSelectTemplate={handleLoadTemplate} />
+              <TemplatesGallery themeTokens={themeTokens} onSelectTemplate={handleLoadTemplate} readOnly={!hasEditPermission} />
             )}
           </div>
         </div>
