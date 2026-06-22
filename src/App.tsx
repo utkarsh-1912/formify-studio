@@ -102,6 +102,7 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
 
   // Share URL state
   const [shareCopied, setShareCopied] = useState(false);
+  const [shareFillMode, setShareFillMode] = useState<"multi" | "single">("multi");
   const [justPushed, setJustPushed] = useState(false);
   const [mobileActiveTab, setMobileActiveTab] = useState<"editor" | "preview">("editor");
 
@@ -350,6 +351,7 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
     const newEntry: SubmissionEntry = {
       id: "sub_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
       timestamp: new Date().toISOString(),
+      ip: "Local Preview",
       data
     };
     const updated = [newEntry, ...submissions];
@@ -1034,15 +1036,40 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
                     <span className="text-[10px] text-emerald-500 font-bold animate-scale-up">Copied!</span>
                   )}
                 </div>
+
+                {/* Fill Mode Segmented Toggle */}
+                <div className="flex items-center space-x-2 bg-slate-500/5 p-1 rounded-lg border border-slate-500/10 w-fit mb-2">
+                  <button
+                    onClick={() => setShareFillMode("multi")}
+                    className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${
+                      shareFillMode === "multi"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : `${themeTokens.textSecondary} hover:opacity-80`
+                    }`}
+                  >
+                    Multifill Link
+                  </button>
+                  <button
+                    onClick={() => setShareFillMode("single")}
+                    className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${
+                      shareFillMode === "single"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : `${themeTokens.textSecondary} hover:opacity-80`
+                    }`}
+                  >
+                    Single Fill Link
+                  </button>
+                </div>
+
                 <div className="flex space-x-2">
                   <input
                     type="text"
                     readOnly
-                    value={`${window.location.origin}/ws/${workspaceId || "default"}/share`}
+                    value={`${window.location.origin}/ws/${workspaceId || "default"}/share?mode=${shareFillMode}`}
                     className={`flex-1 p-2 border ${themeTokens.border} ${themeTokens.inputBg} ${themeTokens.inputText} rounded-xl text-xs focus:outline-none select-all`}
                   />
                   <button
-                    onClick={() => handleCopyToClipboard(`${window.location.origin}/ws/${workspaceId || "default"}/share`, "shareForm")}
+                    onClick={() => handleCopyToClipboard(`${window.location.origin}/ws/${workspaceId || "default"}/share?mode=${shareFillMode}`, "shareForm")}
                     className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center cursor-pointer shadow-sm"
                     title="Copy Form Link"
                   >
@@ -1050,7 +1077,10 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
                   </button>
                 </div>
                 <p className={`text-[10px] ${themeTokens.textSecondary}`}>
-                  Share this link directly with customers to receive submissions.
+                  {shareFillMode === "multi"
+                    ? "Allows clients to submit multiple responses. Renders a 'Fill Form Again' button upon completion."
+                    : "Restricts clients to a single response per browser using localStorage. Prevents form refills."
+                  }
                 </p>
               </div>
 
@@ -1068,11 +1098,11 @@ const App: React.FC<AppProps> = ({ workspaceId }) => {
                   <textarea
                     readOnly
                     rows={2}
-                    value={`<iframe src="${window.location.origin}/ws/${workspaceId || "default"}/view" width="100%" height="600px" style="border:none;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.05);"></iframe>`}
+                    value={`<iframe src="${window.location.origin}/ws/${workspaceId || "default"}/view?mode=${shareFillMode}" width="100%" height="600px" style="border:none;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.05);"></iframe>`}
                     className={`flex-1 p-2 border ${themeTokens.border} ${themeTokens.inputBg} ${themeTokens.inputText} rounded-xl text-xs font-mono resize-none focus:outline-none select-all`}
                   />
                   <button
-                    onClick={() => handleCopyToClipboard(`<iframe src="${window.location.origin}/ws/${workspaceId || "default"}/view" width="100%" height="600px" style="border:none;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.05);"></iframe>`, "shareIframe")}
+                    onClick={() => handleCopyToClipboard(`<iframe src="${window.location.origin}/ws/${workspaceId || "default"}/view?mode=${shareFillMode}" width="100%" height="600px" style="border:none;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.05);"></iframe>`, "shareIframe")}
                     className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center cursor-pointer shadow-sm"
                     title="Copy Embed Code"
                   >

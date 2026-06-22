@@ -6,7 +6,7 @@ import { useP2PSync } from "../../../../utils/p2pSync";
 import { themeMap, GlobalThemeMode } from "../../../../utils/appTheme";
 import { ThemeSettings } from "../../../../utils/codeGenerators";
 import FormGenerator from "../../../../components/FormGenerator";
-import { ArrowLeft, Radio, AlertCircle } from "lucide-react";
+import { ArrowLeft, Radio, AlertCircle, Check, Globe } from "lucide-react";
 
 interface SharePageProps {
   params: Promise<{ id: string }>;
@@ -37,6 +37,48 @@ export default function FormSharePage({ params }: SharePageProps) {
   const [fontFamily, setFontFamily] = useState<"sans" | "mono" | "serif">("sans");
   const [fontScale, setFontScale] = useState<number>(1.0);
   const [globalTheme, setGlobalTheme] = useState<GlobalThemeMode>("light");
+
+  // IP collection and fill restrictions state
+  const [clientIp, setClientIp] = useState<string>("N/A");
+  const [fillMode, setFillMode] = useState<"single" | "multi">("multi");
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [guestSubmittedData, setGuestSubmittedData] = useState<any>(null);
+
+  // Fetch client IP on mount
+  useEffect(() => {
+    fetch("https://api.ipify.org?format=json")
+      .then((res) => res.json())
+      .then((data) => setClientIp(data.ip || "N/A"))
+      .catch((err) => {
+        console.warn("Failed to fetch IP via ipify, trying fallback...", err);
+        fetch("https://ipapi.co/json/")
+          .then((res) => res.json())
+          .then((data) => setClientIp(data.ip || "N/A"))
+          .catch((e) => console.error("All IP lookups failed", e));
+      });
+  }, []);
+
+  // Read fill mode from URL query parameters
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get("mode");
+    if (mode === "single" || mode === "multi") {
+      setFillMode(mode);
+    }
+  }, []);
+
+  // Check if form was already submitted in single-fill mode
+  useEffect(() => {
+    if (fillMode === "single") {
+      const stored = localStorage.getItem(`formify_submitted_data_${workspaceId}`);
+      if (stored) {
+        setHasSubmitted(true);
+        setGuestSubmittedData(JSON.parse(stored));
+      }
+    } else {
+      setHasSubmitted(false);
+    }
+  }, [fillMode, workspaceId]);
 
   // Load from local cache on mount
   useEffect(() => {
@@ -117,8 +159,21 @@ export default function FormSharePage({ params }: SharePageProps) {
     fontFamily === "mono" ? "font-mono" : fontFamily === "serif" ? "font-serif" : "font-sans";
 
   const handleFormSubmit = (data: Record<string, any>) => {
-    // Broadcast the submission back to the host via WebRTC
-    submitForm(data);
+    // Broadcast the submission back to the host with client IP metadata
+    const submissionPayload = {
+      id: "sub_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+      timestamp: new Date().toISOString(),
+      ip: clientIp,
+      data: data
+    };
+    submitForm(submissionPayload);
+
+    // If single fill constraints are active, persist locally to block future submissions
+    if (fillMode === "single") {
+      localStorage.setItem(`formify_submitted_data_${workspaceId}`, JSON.stringify(data));
+      setHasSubmitted(true);
+      setGuestSubmittedData(data);
+    }
   };
 
   return (
@@ -138,7 +193,7 @@ export default function FormSharePage({ params }: SharePageProps) {
       {/* Main layout body */}
       <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 relative">
         {/* Workspace Brand Header */}
-        <div className="w-full max-w-2xl flex items-center justify-between mb-6 flex-shrink-0">
+        <div className="w-full max-w-2xl flex items-center justify-between mb-4 flex-shrink-0">
           <div className="flex items-center space-x-2.5">
             <img src="/logo.png" alt="Formify Logo" className="h-6 sm:h-7 opacity-85" />
             <span className={`text-[10px] font-bold tracking-wide uppercase px-1.5 py-0.5 rounded border ${themeTokens.border} ${themeTokens.inputBg} ${themeTokens.textSecondary}`}>
@@ -167,9 +222,63 @@ export default function FormSharePage({ params }: SharePageProps) {
           )}
         </div>
 
+        {/* Form Mode Toggle Selector for guest convenience */}
+        <div className="w-full max-w-2xl mb-5 flex justify-between items-center bg-black/5 dark:bg-white/5 p-2 rounded-xl border border-gray-200 dark:border-gray-800/80">
+          <span className={`text-[10px] uppercase font-bold tracking-wider ${themeTokens.textSecondary} flex items-center space-x-1`}>
+            <Globe className="h-3.5 w-3.5 text-blue-500" />
+            <span>Submission Mode</span>
+          </span>
+          <div className="flex space-x-1">
+            <button
+              onClick={() => setFillMode("multi")}
+              className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                fillMode === "multi"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : `text-gray-500 hover:text-gray-700 dark:hover:text-gray-300`
+              }`}
+            >
+              Multifill
+            </button>
+            <button
+              onClick={() => setFillMode("single")}
+              className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                fillMode === "single"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : `text-gray-500 hover:text-gray-700 dark:hover:text-gray-300`
+              }`}
+            >
+              Single Fill
+            </button>
+          </div>
+        </div>
+
         {/* Content Box */}
         <div className="w-full max-w-2xl flex-1 flex flex-col justify-center">
-          {schema ? (
+          {hasSubmitted ? (
+            <div className={`w-full p-8 rounded-2xl border ${themeTokens.border} ${themeTokens.card} text-center shadow-lg max-w-md mx-auto relative overflow-hidden animate-fade-in`}>
+              <div className="h-12 w-12 rounded-full bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto mb-4 animate-scale-up">
+                <Check className="h-6 w-6" />
+              </div>
+              <h3 className={`text-md font-bold ${themeTokens.text}`}>Already Submitted</h3>
+              <p className={`text-xs mt-1.5 leading-relaxed ${themeTokens.textSecondary}`}>
+                You have already filled out this form. This form is configured to only allow a single response.
+              </p>
+              {guestSubmittedData && (
+                <div className={`mt-5 w-full text-left border rounded-xl p-3.5 text-xs font-mono max-h-48 overflow-y-auto ${themeTokens.inputBg} ${themeTokens.inputText} ${themeTokens.border} shadow-inner`}>
+                  <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-2 border-b pb-1">Your Submitted Response</span>
+                  {Object.entries(guestSubmittedData).map(([k, v]) => {
+                    const field = schema?.fields?.find((f: any) => f.id === k);
+                    const displayName = field?.label || k;
+                    return (
+                      <div key={k} className="truncate py-0.5">
+                        <span className="opacity-55">{displayName}:</span> {String(v)}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : schema ? (
             <FormGenerator
               schema={schema}
               theme={themeSettings}
@@ -177,6 +286,7 @@ export default function FormSharePage({ params }: SharePageProps) {
               fontFamily={fontFamily}
               fontScale={fontScale}
               onSubmitSubmission={handleFormSubmit}
+              fillMode={fillMode}
             />
           ) : (
             <div className={`w-full p-8 rounded-2xl border ${themeTokens.border} ${themeTokens.card} text-center shadow-lg max-w-md mx-auto`}>

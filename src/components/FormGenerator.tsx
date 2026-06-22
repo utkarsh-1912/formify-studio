@@ -11,6 +11,7 @@ interface FormGeneratorProps {
   fontFamily?: "sans" | "mono" | "serif";
   fontScale?: number;
   onSubmitSubmission: (data: Record<string, any>) => void;
+  fillMode?: "single" | "multi";
 }
 
 const FormGenerator: React.FC<FormGeneratorProps> = ({
@@ -19,7 +20,8 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({
   themeTokens,
   fontFamily = "sans",
   fontScale = 1.0,
-  onSubmitSubmission
+  onSubmitSubmission,
+  fillMode = "multi"
 }) => {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitSuccess, setIsSubmitSuccess] = useState(false);
@@ -142,19 +144,29 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({
               </p>
               
               <div className={`mt-5 w-full max-w-xs text-left border rounded-xl p-3 text-xs font-mono max-h-36 overflow-y-auto ${themeTokens.inputBg} ${themeTokens.inputText} ${themeTokens.border}`}>
-                {submittedData && Object.entries(submittedData).map(([k, v]) => (
-                  <div key={k} className="truncate">
-                    <span className="opacity-55">{k}:</span> {String(v)}
-                  </div>
-                ))}
+                {submittedData && Object.entries(submittedData).map(([k, v]) => {
+                  const field = schema.fields?.find((f: any) => f.id === k);
+                  const displayName = field?.label || k;
+                  return (
+                    <div key={k} className="truncate">
+                      <span className="opacity-55">{displayName}:</span> {String(v)}
+                    </div>
+                  );
+                })}
               </div>
 
-              <button
-                onClick={handleDismissSuccess}
-                className={`mt-6 px-6 py-2.5 text-xs font-bold ${themeClasses.button}`}
-              >
-                Fill Form Again
-              </button>
+              {fillMode !== "single" ? (
+                <button
+                  onClick={handleDismissSuccess}
+                  className={`mt-6 px-6 py-2.5 text-xs font-bold ${themeClasses.button}`}
+                >
+                  Fill Form Again
+                </button>
+              ) : (
+                <p className={`mt-6 text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-500/20`}>
+                  Response submitted. Single fill constraint active.
+                </p>
+              )}
             </div>
           )}
 

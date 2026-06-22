@@ -11,13 +11,15 @@ import {
   Calendar,
   Clock,
   Layers,
-  Code
+  Code,
+  Globe
 } from "lucide-react";
 import { AppThemeTokens } from "../utils/appTheme";
 
 export interface SubmissionEntry {
   id: string;
   timestamp: string;
+  ip?: string;
   data: Record<string, any>;
 }
 
@@ -59,13 +61,14 @@ const SubmissionsDashboard: React.FC<SubmissionsDashboardProps> = ({
       new Set(submissions.flatMap((entry) => Object.keys(entry.data)))
     );
 
-    const headers = ["Submission ID", "Timestamp", ...allKeys];
+    const headers = ["Submission ID", "Timestamp", "IP Address", ...allKeys];
     const csvRows = [
       headers.join(","),
       ...submissions.map((entry) => {
         const rowData = [
           entry.id,
           entry.timestamp,
+          entry.ip || "N/A",
           ...allKeys.map((key) => {
             const val = entry.data[key] === undefined ? "" : entry.data[key];
             const escaped = String(val).replace(/"/g, '""');
@@ -168,6 +171,7 @@ const SubmissionsDashboard: React.FC<SubmissionsDashboardProps> = ({
                 <tr>
                   <th className="px-6 py-3">Timestamp / Time</th>
                   <th className="px-6 py-3">ID</th>
+                  <th className="px-6 py-3">Client IP</th>
                   <th className="px-6 py-3">Values Summary</th>
                   <th className="px-6 py-3 text-right">Actions</th>
                 </tr>
@@ -180,6 +184,9 @@ const SubmissionsDashboard: React.FC<SubmissionsDashboardProps> = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-xs font-mono font-semibold text-blue-500">
                       #{entry.id.substring(0, 8)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-xs font-mono font-medium text-gray-500 dark:text-gray-400">
+                      {entry.ip || "N/A"}
                     </td>
                     <td className="px-6 py-4">
                       <div className="max-w-xs md:max-w-sm lg:max-w-md truncate text-xs space-x-2">
@@ -276,7 +283,7 @@ const SubmissionsDashboard: React.FC<SubmissionsDashboardProps> = ({
 
             <div className="p-6 overflow-y-auto flex-1 space-y-5">
               {/* Info grid */}
-              <div className={`grid grid-cols-2 gap-4 pb-4 border-b ${themeTokens.border}`}>
+              <div className={`grid grid-cols-3 gap-4 pb-4 border-b ${themeTokens.border}`}>
                 <div className={`p-3 rounded-xl border ${themeTokens.border} ${themeTokens.inputBg} flex items-center space-x-3 shadow-sm`}>
                   <Calendar className="h-4.5 w-4.5 text-blue-500 flex-shrink-0" />
                   <div>
@@ -292,6 +299,15 @@ const SubmissionsDashboard: React.FC<SubmissionsDashboardProps> = ({
                     <span className={`block text-[9px] font-bold uppercase tracking-wider ${themeTokens.textSecondary}`}>Time Logged</span>
                     <span className={`text-xs font-semibold ${themeTokens.text}`}>
                       {new Date(activeModalEntry.timestamp).toLocaleTimeString()}
+                    </span>
+                  </div>
+                </div>
+                <div className={`p-3 rounded-xl border ${themeTokens.border} ${themeTokens.inputBg} flex items-center space-x-3 shadow-sm`}>
+                  <Globe className="h-4.5 w-4.5 text-emerald-500 flex-shrink-0" />
+                  <div>
+                    <span className={`block text-[9px] font-bold uppercase tracking-wider ${themeTokens.textSecondary}`}>Client IP</span>
+                    <span className={`text-xs font-semibold ${themeTokens.text}`}>
+                      {activeModalEntry.ip || "N/A"}
                     </span>
                   </div>
                 </div>

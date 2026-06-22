@@ -24,7 +24,8 @@ import {
   FileText,
   Check,
   Copy,
-  Code
+  Code,
+  Globe
 } from "lucide-react";
 
 interface AnalyticsPageProps {
@@ -34,6 +35,7 @@ interface AnalyticsPageProps {
 interface SubmissionEntry {
   id: string;
   timestamp: string;
+  ip?: string;
   data: Record<string, any>;
 }
 
@@ -219,12 +221,13 @@ export default function AnalyticsDashboardPage({ params }: AnalyticsPageProps) {
   const handleExportCSV = () => {
     if (submissions.length === 0) return;
     const allKeys = Array.from(new Set(submissions.flatMap((e) => Object.keys(e.data))));
-    const headers = ["Submission ID", "Timestamp", ...allKeys];
+    const headers = ["Submission ID", "Timestamp", "IP Address", ...allKeys];
     const csvRows = [
       headers.join(","),
       ...submissions.map((entry) => [
         entry.id,
         entry.timestamp,
+        entry.ip || "N/A",
         ...allKeys.map((k) => `"${String(entry.data[k] === undefined ? "" : entry.data[k]).replace(/"/g, '""')}"`)
       ].join(","))
     ];
@@ -504,6 +507,7 @@ export default function AnalyticsDashboardPage({ params }: AnalyticsPageProps) {
                 <tr>
                   <th className="p-3">Submission ID</th>
                   <th className="p-3">Timestamp</th>
+                  <th className="p-3">Client IP</th>
                   <th className="p-3">Details Summary</th>
                   <th className="p-3 text-right">Action</th>
                 </tr>
@@ -511,7 +515,7 @@ export default function AnalyticsDashboardPage({ params }: AnalyticsPageProps) {
               <tbody className="divide-y divide-gray-200/50 dark:divide-gray-800/50">
                 {filteredSubmissions.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className={`p-8 text-center ${themeTokens.textSecondary}`}>
+                    <td colSpan={5} className={`p-8 text-center ${themeTokens.textSecondary}`}>
                       No matching records found.
                     </td>
                   </tr>
@@ -525,6 +529,7 @@ export default function AnalyticsDashboardPage({ params }: AnalyticsPageProps) {
                       <tr key={entry.id} className={`${themeTokens.tableRowHover} transition-colors duration-150`}>
                         <td className={`p-3 font-mono font-bold ${themeTokens.text}`}>{entry.id}</td>
                         <td className={`p-3 ${themeTokens.textSecondary}`}>{new Date(entry.timestamp).toLocaleString()}</td>
+                        <td className={`p-3 font-mono ${themeTokens.textSecondary}`}>{entry.ip || "N/A"}</td>
                         <td className={`p-3 truncate max-w-xs ${themeTokens.textSecondary}`}>{dataSummary}</td>
                         <td className="p-3 text-right">
                           <button
@@ -600,7 +605,7 @@ export default function AnalyticsDashboardPage({ params }: AnalyticsPageProps) {
 
             <div className="p-6 overflow-y-auto flex-1 space-y-5">
               {/* Info grid */}
-              <div className={`grid grid-cols-2 gap-4 pb-4 border-b ${themeTokens.border}`}>
+              <div className={`grid grid-cols-3 gap-4 pb-4 border-b ${themeTokens.border}`}>
                 <div className={`p-3 rounded-xl border ${themeTokens.border} ${themeTokens.inputBg} flex items-center space-x-3 shadow-sm`}>
                   <Calendar className="h-4.5 w-4.5 text-blue-500 flex-shrink-0" />
                   <div>
@@ -616,6 +621,15 @@ export default function AnalyticsDashboardPage({ params }: AnalyticsPageProps) {
                     <span className={`block text-[9px] font-bold uppercase tracking-wider ${themeTokens.textSecondary}`}>Time Logged</span>
                     <span className={`text-xs font-semibold ${themeTokens.text}`}>
                       {new Date(activeModalEntry.timestamp).toLocaleTimeString()}
+                    </span>
+                  </div>
+                </div>
+                <div className={`p-3 rounded-xl border ${themeTokens.border} ${themeTokens.inputBg} flex items-center space-x-3 shadow-sm`}>
+                  <Globe className="h-4.5 w-4.5 text-emerald-500 flex-shrink-0" />
+                  <div>
+                    <span className={`block text-[9px] font-bold uppercase tracking-wider ${themeTokens.textSecondary}`}>Client IP</span>
+                    <span className={`text-xs font-semibold ${themeTokens.text}`}>
+                      {activeModalEntry.ip || "N/A"}
                     </span>
                   </div>
                 </div>
