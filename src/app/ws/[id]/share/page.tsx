@@ -234,7 +234,7 @@ export default function FormSharePage({ params }: SharePageProps) {
               className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                 fillMode === "multi"
                   ? "bg-blue-600 text-white shadow-sm"
-                  : `text-gray-500 hover:text-gray-700 dark:hover:text-gray-300`
+                  : `hidden`
               }`}
             >
               Multifill
@@ -244,7 +244,7 @@ export default function FormSharePage({ params }: SharePageProps) {
               className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                 fillMode === "single"
                   ? "bg-blue-600 text-white shadow-sm"
-                  : `text-gray-500 hover:text-gray-700 dark:hover:text-gray-300`
+                  : `hidden`
               }`}
             >
               Single Fill
